@@ -134,12 +134,16 @@ routers.post('/follow-users', async (req: Request, res: Response) => {
     const myUser = getAuthenticatedUser(res);
     if (!myUser) return;
 
-    try {
-        const result = await FollowUsersFollowers(targetUser, myUser);
-        res.json(result);
-    } catch (error) {
-        res.status(500).json({ error: "Erro ao seguir seguidores do usuário." });
-    }
+    res.json({ message: "Processo iniciado em background.", targetUser });
+
+    setImmediate(async () => {
+        try {
+            const result = await FollowUsersFollowers(targetUser, myUser);
+            console.log(`[follow-users] concluído:`, result);
+        } catch (error) {
+            console.error(`[follow-users] erro:`, error);
+        }
+    });
 });
 
 /**
