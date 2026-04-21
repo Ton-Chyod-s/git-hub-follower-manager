@@ -187,48 +187,92 @@ routers.get('/check-unfollower', async (req: Request, res: Response) => {
 
 /**
  * @swagger
- * /new-follower/{name}:
- *   put:
- *     summary: Segue um usuário específico do GitHub
+ * /new-follower:
+ *   post:
+ *     summary: Segue um ou mais usuários do GitHub
  *     tags:
  *       - Seguidores
- *     parameters:
- *       - in: path
- *         name: name
- *         required: true
- *         schema:
- *           type: string
- *         description: Nome de usuário do GitHub a ser seguido
- *         example: octocat
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               usernames:
+ *                 oneOf:
+ *                   - type: string
+ *                     example: "usuario1"
+ *                   - type: array
+ *                     items:
+ *                       type: string
+ *                     example: ["usuario1", "usuario2"]
  *     responses:
  *       200:
- *         description: Usuário seguido com sucesso
+ *         description: Resultado do follow
  *         content:
  *           application/json:
  *             schema:
  *               type: object
+ *               properties:
+ *                 success:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                 failed:
+ *                   type: array
+ *                   items:
+ *                     type: string
  *       400:
- *         description: Nome do usuário não informado
+ *         description: Nenhum usuário informado
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  *       500:
- *         description: Erro interno ao seguir o usuário
+ *         description: Erro interno
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-routers.put('/new-follower/:name', async (req: Request, res: Response): Promise<void> => {
-    const name = validateUserName(req, res);
-    if (!name) return;
+routers.post('/new-follower', async (req: Request, res: Response): Promise<void> => {
+    const { usernames } = req.body;
+
+    if (!usernames) {
+        res.status(400).json({ error: "Informe 'usernames' com um nome ou lista de usuários." });
+        return;
+    }
+
+    const list: string[] = Array.isArray(usernames) ? usernames : [usernames];
+
+    if (list.length === 0) {
+        res.status(400).json({ error: "A lista de usuários está vazia." });
+        return;
+    }
 
     try {
-        const result = await newFollower(name);
-        res.json(result);
+        const results = await Promise.allSettled(
+            list.map(async (username) => {
+                const randomDelay = Math.floor(Math.random() * 2000) + 1000;
+                await new Promise(resolve => setTimeout(resolve, randomDelay));
+                const ok = await newFollower(username);
+                if (!ok) throw new Error(username);
+                return username;
+            })
+        );
+
+        const success: string[] = [];
+        const failed: string[] = [];
+
+        results.forEach((result, i) => {
+            if (result.status === 'fulfilled') success.push(result.value);
+            else failed.push(list[i]);
+        });
+
+        res.json({ success, failed });
     } catch (error) {
-        res.status(500).json({ error: "Erro ao seguir o usuário." });
+        res.status(500).json({ error: "Erro ao seguir usuário(s)." });
     }
 });
 
