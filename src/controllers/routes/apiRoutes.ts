@@ -3,6 +3,7 @@ import { CheckFollowerWithFollowing } from '../../services/useCases/checkFollowe
 import { FollowUsersFollowers } from '../../services/useCases/followUsersFollowers/FollowUsersFollowersUseCase';
 import { newFollower } from '../../requests/FollowRequest';
 import { checkUnfollowAndFollow } from '../../services/useCases/checkUnfollowAndFollow/checkUnfollowAndFollowUseCase';
+import { unfollowUsers } from '../../services/useCases/unfollowUsers/UnfollowUsersUseCase';
 
 const routers = Router();
 
@@ -264,5 +265,69 @@ function validateUserName(req: Request, res: Response): string | null {
     }
     return name;
 }
+
+/**
+ * @swagger
+ * /unfollow-users:
+ *   delete:
+ *     summary: Para de seguir uma lista de usuários do GitHub
+ *     tags:
+ *       - Seguidores
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               usernames:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 example: ["usuario1", "usuario2"]
+ *     responses:
+ *       200:
+ *         description: Resultado do unfollow em lote
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                 failed:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *       400:
+ *         description: Lista de usuários não informada ou vazia
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       500:
+ *         description: Erro interno
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
+routers.delete('/unfollow-users', async (req: Request, res: Response) => {
+    const { usernames } = req.body;
+
+    if (!Array.isArray(usernames) || usernames.length === 0) {
+        res.status(400).json({ error: "Informe uma lista de usuários em 'usernames'." });
+        return;
+    }
+
+    try {
+        const result = await unfollowUsers(usernames);
+        res.json(result);
+    } catch (error) {
+        res.status(500).json({ error: "Erro ao processar unfollow em lote." });
+    }
+});
 
 export { routers };
