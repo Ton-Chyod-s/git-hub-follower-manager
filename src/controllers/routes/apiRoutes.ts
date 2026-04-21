@@ -86,10 +86,22 @@ routers.get('/check-follower', async (req: Request, res: Response) => {
 /**
  * @swagger
  * /follow-users:
- *   get:
- *     summary: Segue automaticamente os seguidores de um usuário que você ainda não segue
+ *   post:
+ *     summary: Copia e segue os seguidores orgânicos de uma conta referência
  *     tags:
  *       - Seguidores
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - targetUser
+ *             properties:
+ *               targetUser:
+ *                 type: string
+ *                 example: "referencia_organica"
  *     responses:
  *       200:
  *         description: Quantidade de usuários seguidos com sucesso
@@ -98,19 +110,32 @@ routers.get('/check-follower', async (req: Request, res: Response) => {
  *             schema:
  *               type: number
  *             example: 12
+ *       400:
+ *         description: targetUser não informado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  *       500:
- *         description: Erro interno ao seguir usuários
+ *         description: Erro interno
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-routers.get('/follow-users', async (req: Request, res: Response) => {
-    const name = getAuthenticatedUser(res);
-    if (!name) return;
+routers.post('/follow-users', async (req: Request, res: Response) => {
+    const { targetUser } = req.body;
+
+    if (!targetUser) {
+        res.status(400).json({ error: "Informe 'targetUser' com a conta referência." });
+        return;
+    }
+
+    const myUser = getAuthenticatedUser(res);
+    if (!myUser) return;
 
     try {
-        const result = await FollowUsersFollowers(name);
+        const result = await FollowUsersFollowers(targetUser, myUser);
         res.json(result);
     } catch (error) {
         res.status(500).json({ error: "Erro ao seguir seguidores do usuário." });

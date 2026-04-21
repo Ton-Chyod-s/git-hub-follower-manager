@@ -1,93 +1,98 @@
 import { GetFollowersData } from "../../../requests/FollowersRequest";
+import { GetFollowingData } from "../../../requests/FollowingRequest";
 import { newFollower } from "../../../requests/FollowRequest";
 import { getUserData } from "../../../requests/UserRequest";
+import { filterOrganicFollowers } from "../filterOrganicFollowers/FilterOrganicFollowersUseCase";
 
-require('dotenv').config({ path: "src\\config\\.env" });
+const PER_PAGE = 100;
+const BATCH_SIZE = 20;
 
-export async function FollowUsersFollowers(userName: string): Promise<number | null> {
-    const user = process.env.USER ?? '';
-    
-    const getFollowersINotFollow = await GetUnreciprocatedFollows(userName, user);
-    if (!getFollowersINotFollow)
-        return null;
+export async function FollowUsersFollowers(targetUser: string, myUser: string): Promise<{ followed: number; skipped: number; filtered: number } | null> {
 
-    const followResults = await followedUsers(getFollowersINotFollow);
+    const toFollow = await getFollowersIDoNotFollow(targetUser, myUser);
+    if (!toFollow) return null;
 
-    const followedCount = followResults.filter(result => result !== null).length;
+    const { organic, suspicious } = await filterOrganicFollowers([...toFollow]);
 
-    return followedCount > 0 ? followedCount : null;
-}
+    let followed = 0;
+    let skipped = 0;
 
-async function followedUsers(followed: Set<string>): Promise<(string | null)[]> {
-    const followResults = await Promise.allSettled(
-        [...followed].map(async (follower) => {
-            try {
-                const randomDelay = Math.floor(Math.random() * 2000) + 1000;
-                await new Promise(resolve => setTimeout(resolve, randomDelay));
+    const batches = chunkArray(organic, BATCH_SIZE);
 
-                const response = await newFollower(follower);
-                if (!response) throw new Error(`Falha ao seguir ${follower}`);
-                return follower;
-            } catch (error) {
-                console.error(`Erro ao seguir ${follower}:`, error);
-                return null;
-            }
-        })
-    );
+    for (const batch of batches) {
+        const results = await Promise.allSettled(
+            batch.map(async (username) => {
+                const delay = Math.floor(Math.random() * 3000) + 2000;
+                await new Promise(resolve => setTimeout(resolve, delay));
+                const ok = await newFollower(username);
+                if (!ok) throw new Error(username);
+                return username;
+            })
+        );
 
-    const followedUsers = followResults
-    .filter(result => result.status === "fulfilled" && result.value !== null)
-    .map(result => (result as PromiseFulfilledResult<string>).value);
+        results.forEach(r => r.status === 'fulfilled' ? followed++ : skipped++);
 
-    return followedUsers;
-  
-}
-
-async function GetUnreciprocatedFollows(userName: string, user: string): Promise<Set<string> | null> {
-    const notFollowingBack = new Set<string>();
-
-    const myFollowers = await GetUserFollowers(userName);
-    if (!myFollowers) return null;
-
-    const myFollowing = await GetUserFollowers(user);
-    if (!myFollowing) return null;
-
-    myFollowers.forEach(user => { 
-        if (!myFollowing.has(user)) { 
-            notFollowingBack.add(user);
+        if (batches.indexOf(batch) < batches.length - 1) {
+            const batchDelay = Math.floor(Math.random() * 5000) + 10000;
+            await new Promise(resolve => setTimeout(resolve, batchDelay));
         }
+    }
+
+    return { followed, skipped, filtered: suspicious.length };
+}
+
+async function getFollowersIDoNotFollow(targetUser: string, myUser: string): Promise<Set<string> | null> {
+    const [targetFollowers, myFollowing] = await Promise.all([
+        getUserFollowers(targetUser),
+        getUserFollowing(myUser),
+    ]);
+
+    if (!targetFollowers || !myFollowing) return null;
+
+    const toFollow = new Set<string>();
+    targetFollowers.forEach(user => {
+        if (!myFollowing.has(user) && user !== myUser)
+            toFollow.add(user);
     });
 
-    return notFollowingBack;
+    return toFollow;
 }
 
-async function GetUserFollowers(userName: string): Promise<Set<string> | null> {
-    const FOLLOWERS_PER_PAGE = 100;
-    const listFollowers = new Set<string>();
+async function getUserFollowers(username: string): Promise<Set<string> | null> {
+    const userData = await getUserData(username);
+    if (!userData) return null;
 
-    try{
-        const userData = await getUserData(userName);
-        if (!userData) 
-            return null;
+    const pageCount = Math.ceil((userData.Followers ?? 0) / PER_PAGE);
+    if (!Number.isFinite(pageCount) || pageCount <= 0) return new Set();
 
-        const totalFollowers = userData.Followers ?? 0;
-        const followersPageCount = Math.ceil(totalFollowers / FOLLOWERS_PER_PAGE);
+    const pages = await Promise.all(
+        Array.from({ length: pageCount }, (_, i) => GetFollowersData(username, i + 1))
+    );
 
-        if (!Number.isFinite(followersPageCount) || followersPageCount <= 0) return new Set();
+    const result = new Set<string>();
+    pages.forEach(page => page?.forEach(f => result.add(f.Name)));
+    return result;
+}
 
-        const promises = Array.from({ length: followersPageCount }, (_, i) =>
-            GetFollowersData(userName, i + 1)
-        );
-        const followersData = await Promise.all(promises);
-        
-        followersData.forEach(followerList => {
-            followerList?.forEach(follower => listFollowers.add(follower.Name));
-        });
+async function getUserFollowing(username: string): Promise<Set<string> | null> {
+    const userData = await getUserData(username);
+    if (!userData) return null;
 
-    } catch (error) {
-        console.error("Erro ao buscar seguidores:", error);
-        return null;
-    }
-    
-    return listFollowers;
+    const pageCount = Math.ceil((userData.Following ?? 0) / PER_PAGE);
+    if (!Number.isFinite(pageCount) || pageCount <= 0) return new Set();
+
+    const pages = await Promise.all(
+        Array.from({ length: pageCount }, (_, i) => GetFollowingData(username, i + 1))
+    );
+
+    const result = new Set<string>();
+    pages.forEach(page => page?.forEach(f => result.add(f.Name)));
+    return result;
+}
+
+function chunkArray<T>(arr: T[], size: number): T[][] {
+    const chunks: T[][] = [];
+    for (let i = 0; i < arr.length; i += size)
+        chunks.push(arr.slice(i, i + size));
+    return chunks;
 }
