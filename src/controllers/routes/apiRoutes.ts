@@ -8,6 +8,15 @@ import { filterOrganicFollowers } from '../../services/useCases/filterOrganicFol
 
 const routers = Router();
 
+function getAuthenticatedUser(res: Response): string | null {
+    const user = process.env.USER;
+    if (!user) {
+        res.status(500).json({ error: "Variável USER não configurada no ambiente." });
+        return null;
+    }
+    return user;
+}
+
 /**
  * @swagger
  * /:
@@ -28,13 +37,13 @@ routers.get('/', (req: Request, res: Response) => {
         message: "Bem-vindo à API de Gerenciamento de Seguidores!",
         description: "Esta API permite verificar seguidores, seguir usuários automaticamente e monitorar alterações na lista de seguidores.",
         endpoints: {
-            "/check-follower": "Verifica se um usuário segue outro usuário.",
+            "/check-follower": "Verifica quem você segue mas não te segue de volta.",
             "/follow-users": "Segue automaticamente os seguidores de um usuário.",
-            "/check-unfollower": "Verifica se um usuário deixou de seguir outro.",
-            "/new-follower/:name": "Segue um novo usuário específico."
+            "/check-unfollower": "Verifica quem te segue mas você ainda não segue de volta.",
+            "/new-follower": "Segue um ou mais usuários específicos.",
+            "/unfollow-users": "Para de seguir uma lista de usuários.",
+            "/filter-organic": "Filtra usuários separando orgânicos de suspeitos (bots)."
         },
-        note: "Para utilizar os endpoints que exigem um nome de usuário, passe o parâmetro 'name' na query string ou na URL.",
-        example: "/check-follower?name=usuario"
     });
 });
 
@@ -45,14 +54,6 @@ routers.get('/', (req: Request, res: Response) => {
  *     summary: Verifica quem você segue mas não te segue de volta
  *     tags:
  *       - Seguidores
- *     parameters:
- *       - in: query
- *         name: name
- *         required: true
- *         schema:
- *           type: string
- *         description: Nome de usuário do GitHub
- *         example: octocat
  *     responses:
  *       200:
  *         description: Lista de usuários que você segue mas não te seguem de volta
@@ -63,12 +64,6 @@ routers.get('/', (req: Request, res: Response) => {
  *               items:
  *                 type: string
  *             example: ["usuario1", "usuario2"]
- *       400:
- *         description: Nome do usuário não informado
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
  *       500:
  *         description: Erro interno ao consultar seguidores
  *         content:
@@ -77,7 +72,7 @@ routers.get('/', (req: Request, res: Response) => {
  *               $ref: '#/components/schemas/ErrorResponse'
  */
 routers.get('/check-follower', async (req: Request, res: Response) => {
-    const name = validateUserName(req, res);
+    const name = getAuthenticatedUser(res);
     if (!name) return;
 
     try {
@@ -95,14 +90,6 @@ routers.get('/check-follower', async (req: Request, res: Response) => {
  *     summary: Segue automaticamente os seguidores de um usuário que você ainda não segue
  *     tags:
  *       - Seguidores
- *     parameters:
- *       - in: query
- *         name: name
- *         required: true
- *         schema:
- *           type: string
- *         description: Nome de usuário do GitHub cujos seguidores serão seguidos
- *         example: octocat
  *     responses:
  *       200:
  *         description: Quantidade de usuários seguidos com sucesso
@@ -111,12 +98,6 @@ routers.get('/check-follower', async (req: Request, res: Response) => {
  *             schema:
  *               type: number
  *             example: 12
- *       400:
- *         description: Nome do usuário não informado
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
  *       500:
  *         description: Erro interno ao seguir usuários
  *         content:
@@ -125,7 +106,7 @@ routers.get('/check-follower', async (req: Request, res: Response) => {
  *               $ref: '#/components/schemas/ErrorResponse'
  */
 routers.get('/follow-users', async (req: Request, res: Response) => {
-    const name = validateUserName(req, res);
+    const name = getAuthenticatedUser(res);
     if (!name) return;
 
     try {
@@ -143,14 +124,6 @@ routers.get('/follow-users', async (req: Request, res: Response) => {
  *     summary: Verifica quem te segue mas você ainda não segue de volta
  *     tags:
  *       - Seguidores
- *     parameters:
- *       - in: query
- *         name: name
- *         required: true
- *         schema:
- *           type: string
- *         description: Nome de usuário do GitHub
- *         example: octocat
  *     responses:
  *       200:
  *         description: Lista de usuários que te seguem mas você não segue de volta
@@ -161,12 +134,6 @@ routers.get('/follow-users', async (req: Request, res: Response) => {
  *               items:
  *                 type: string
  *             example: ["usuario3", "usuario4"]
- *       400:
- *         description: Nome do usuário não informado
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
  *       500:
  *         description: Erro interno ao consultar usuário
  *         content:
@@ -175,7 +142,7 @@ routers.get('/follow-users', async (req: Request, res: Response) => {
  *               $ref: '#/components/schemas/ErrorResponse'
  */
 routers.get('/check-unfollower', async (req: Request, res: Response) => {
-    const name = validateUserName(req, res);
+    const name = getAuthenticatedUser(res);
     if (!name) return;
 
     try {
@@ -276,40 +243,6 @@ routers.post('/new-follower', async (req: Request, res: Response): Promise<void>
         res.status(500).json({ error: "Erro ao seguir usuário(s)." });
     }
 });
-
-/**
- * @swagger
- * components:
- *   schemas:
- *     ErrorResponse:
- *       type: object
- *       properties:
- *         error:
- *           type: string
- *           example: O nome do usuário é obrigatório.
- *     WelcomeResponse:
- *       type: object
- *       properties:
- *         message:
- *           type: string
- *         description:
- *           type: string
- *         endpoints:
- *           type: object
- *         note:
- *           type: string
- *         example:
- *           type: string
- */
-
-function validateUserName(req: Request, res: Response): string | null {
-    const name = req.query.name as string || req.params.name;
-    if (!name) {
-        res.status(400).json({ error: "O nome do usuário é obrigatório." });
-        return null;
-    }
-    return name;
-}
 
 /**
  * @swagger
@@ -418,6 +351,12 @@ routers.delete('/unfollow-users', async (req: Request, res: Response) => {
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
+ *       500:
+ *         description: Erro interno
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
 routers.post('/filter-organic', async (req: Request, res: Response) => {
     const { usernames } = req.body;
@@ -434,5 +373,26 @@ routers.post('/filter-organic', async (req: Request, res: Response) => {
         res.status(500).json({ error: "Erro ao filtrar usuários." });
     }
 });
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     ErrorResponse:
+ *       type: object
+ *       properties:
+ *         error:
+ *           type: string
+ *           example: Variável USER não configurada no ambiente.
+ *     WelcomeResponse:
+ *       type: object
+ *       properties:
+ *         message:
+ *           type: string
+ *         description:
+ *           type: string
+ *         endpoints:
+ *           type: object
+ */
 
 export { routers };
