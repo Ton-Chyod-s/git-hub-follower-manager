@@ -1,19 +1,32 @@
-import express, { Application } from 'express';
+import express, { Application, ErrorRequestHandler } from 'express';
+import helmet from 'helmet';
 import swaggerUi from 'swagger-ui-express';
+import * as dotenv from 'dotenv';
+import * as path from 'path';
 import { RegisterRoutes } from './src/controllers/RegisterRoutes';
 import { swaggerSpec } from './src/config/swagger';
+import { errorMiddleware } from './src/interfaces/http/middlewares/errorMiddleware';
+import { globalApiLimiter } from './src/interfaces/http/middlewares/rateLimitMiddleware';
+
+dotenv.config({ path: path.resolve(__dirname, 'src/config/.env') });
 
 const server: Application = express();
 const port = process.env.PORT || 3000;
 
-server.use(express.json());
+server.disable('x-powered-by');
 
-// Swagger UI disponível em /api-docs
+server.use(helmet());
+server.use(express.json({ limit: '10kb' }));
+
 server.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+server.use('/', globalApiLimiter);
 
 RegisterRoutes(server);
 
+server.use(errorMiddleware as ErrorRequestHandler);
+
 server.listen(port, () => {
-    console.log(`Server running on port http://localhost:${port}`);
-    console.log(`Swagger docs available at http://localhost:${port}/api-docs`);
+  console.log(`Server running on http://localhost:${port}`);
+  console.log(`Swagger docs available at http://localhost:${port}/api-docs`);
 });

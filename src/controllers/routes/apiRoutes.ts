@@ -1,24 +1,28 @@
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { CheckFollowerWithFollowing } from '../../services/useCases/checkFollowerAndFollowing/CheckFollowerWithFollowingUseCase';
 import { FollowUsersFollowers } from '../../services/useCases/followUsersFollowers/FollowUsersFollowersUseCase';
 import { newFollower } from '../../requests/FollowRequest';
 import { checkUnfollowAndFollow } from '../../services/useCases/checkUnfollowAndFollow/checkUnfollowAndFollowUseCase';
 import { unfollowUsers } from '../../services/useCases/unfollowUsers/UnfollowUsersUseCase';
 import { filterOrganicFollowers } from '../../services/useCases/filterOrganicFollowers/FilterOrganicFollowersUseCase';
+import { AppError } from '../../utils/appError';
+import { createResponse } from '../../utils/createResponse';
+import { httpStatusCodes } from '../../utils/httpConstants';
 
 const routers = Router();
 
 function getAuthenticatedUser(res: Response): string | null {
-    const user = process.env.USER;
-    if (!user) {
-        res.status(500).json({ error: "Variável USER não configurada no ambiente." });
-        return null;
-    }
-    return user;
+  const user = process.env.USER;
+  if (!user) {
+    const status = httpStatusCodes.INTERNAL_SERVER_ERROR;
+    res.status(status).json(createResponse(status, 'GitHub user not configured', undefined, 'USER_NOT_SET'));
+    return null;
+  }
+  return user;
 }
 
 function isValidUsername(username: string): boolean {
-    return /^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,37}[a-zA-Z0-9])?$/.test(username);
+  return /^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,37}[a-zA-Z0-9])?$/.test(username);
 }
 
 /**
@@ -30,25 +34,22 @@ function isValidUsername(username: string): boolean {
  *       - Geral
  *     responses:
  *       200:
- *         description: Informações sobre a API e endpoints disponíveis
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/WelcomeResponse'
+ *         description: Informações sobre a API
  */
 routers.get('/', (_req: Request, res: Response) => {
-    res.json({
-        message: "Bem-vindo à API de Gerenciamento de Seguidores!",
-        description: "Esta API permite verificar seguidores, seguir usuários automaticamente e monitorar alterações na lista de seguidores.",
-        endpoints: {
-            "/check-follower":   "Verifica quem você segue mas não te segue de volta.",
-            "/follow-users":     "Segue automaticamente os seguidores de um usuário.",
-            "/check-unfollower": "Verifica quem te segue mas você ainda não segue de volta.",
-            "/new-follower":     "Segue um ou mais usuários específicos.",
-            "/unfollow-users":   "Para de seguir uma lista de usuários.",
-            "/filter-organic":   "Filtra usuários separando orgânicos de suspeitos (bots).",
-        },
-    });
+  const status = httpStatusCodes.OK;
+  res.status(status).json(
+    createResponse(status, 'Bem-vindo à API de Gerenciamento de Seguidores!', {
+      endpoints: {
+        '/check-follower': 'Verifica quem você segue mas não te segue de volta.',
+        '/follow-users': 'Segue automaticamente os seguidores de um usuário.',
+        '/check-unfollower': 'Verifica quem te segue mas você ainda não segue de volta.',
+        '/new-follower': 'Segue um ou mais usuários específicos.',
+        '/unfollow-users': 'Para de seguir uma lista de usuários.',
+        '/filter-organic': 'Filtra usuários separando orgânicos de suspeitos (bots).',
+      },
+    }),
+  );
 });
 
 /**
@@ -60,25 +61,21 @@ routers.get('/', (_req: Request, res: Response) => {
  *       - Seguidores
  *     responses:
  *       200:
- *         description: Lista de usuários que você segue mas não te seguem de volta
+ *         description: Lista retornada com sucesso
  *       500:
  *         description: Erro interno
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
  */
-routers.get('/check-follower', async (_req: Request, res: Response) => {
-    const name = getAuthenticatedUser(res);
-    if (!name) return;
+routers.get('/check-follower', async (_req: Request, res: Response, next: NextFunction) => {
+  const name = getAuthenticatedUser(res);
+  if (!name) return;
 
-    try {
-        const result = await CheckFollowerWithFollowing(name);
-        res.json(result);
-    } catch (error) {
-        console.error('[check-follower]', error instanceof Error ? error.message : error);
-        res.status(500).json({ error: "Erro ao verificar seguidores." });
-    }
+  try {
+    const result = await CheckFollowerWithFollowing(name);
+    const status = httpStatusCodes.OK;
+    res.status(status).json(createResponse(status, 'Success', result));
+  } catch (error) {
+    next(error);
+  }
 });
 
 /**
@@ -104,31 +101,29 @@ routers.get('/check-follower', async (_req: Request, res: Response) => {
  *       200:
  *         description: Processo iniciado em background
  *       400:
- *         description: targetUser não informado ou inválido
- *       500:
- *         description: Erro interno
+ *         description: targetUser inválido
  */
-routers.post('/follow-users', async (req: Request, res: Response) => {
-    const { targetUser } = req.body;
+routers.post('/follow-users', async (req: Request, res: Response, next: NextFunction) => {
+  const { targetUser } = req.body;
 
-    if (!targetUser || typeof targetUser !== 'string' || !isValidUsername(targetUser)) {
-        res.status(400).json({ error: "Informe 'targetUser' com um nome de usuário GitHub válido." });
-        return;
+  if (!targetUser || typeof targetUser !== 'string' || !isValidUsername(targetUser)) {
+    return next(AppError.badRequest("Informe 'targetUser' com um nome de usuário GitHub válido.", 'INVALID_TARGET_USER'));
+  }
+
+  const myUser = getAuthenticatedUser(res);
+  if (!myUser) return;
+
+  const status = httpStatusCodes.OK;
+  res.status(status).json(createResponse(status, 'Processo iniciado em background.', { targetUser }));
+
+  setImmediate(async () => {
+    try {
+      const result = await FollowUsersFollowers(targetUser, myUser);
+      console.log('[follow-users] concluído:', result);
+    } catch (error) {
+      console.error('[follow-users] erro:', error instanceof Error ? error.message : error);
     }
-
-    const myUser = getAuthenticatedUser(res);
-    if (!myUser) return;
-
-    res.json({ message: "Processo iniciado em background.", targetUser });
-
-    setImmediate(async () => {
-        try {
-            const result = await FollowUsersFollowers(targetUser, myUser);
-            console.log('[follow-users] concluído:', result);
-        } catch (error) {
-            console.error('[follow-users] erro:', error instanceof Error ? error.message : error);
-        }
-    });
+  });
 });
 
 /**
@@ -140,21 +135,21 @@ routers.post('/follow-users', async (req: Request, res: Response) => {
  *       - Seguidores
  *     responses:
  *       200:
- *         description: Lista de usuários que te seguem mas você não segue de volta
+ *         description: Lista retornada com sucesso
  *       500:
  *         description: Erro interno
  */
-routers.get('/check-unfollower', async (_req: Request, res: Response) => {
-    const name = getAuthenticatedUser(res);
-    if (!name) return;
+routers.get('/check-unfollower', async (_req: Request, res: Response, next: NextFunction) => {
+  const name = getAuthenticatedUser(res);
+  if (!name) return;
 
-    try {
-        const result = await checkUnfollowAndFollow(name);
-        res.json(result);
-    } catch (error) {
-        console.error('[check-unfollower]', error instanceof Error ? error.message : error);
-        res.status(500).json({ error: "Erro ao verificar unfollowers." });
-    }
+  try {
+    const result = await checkUnfollowAndFollow(name);
+    const status = httpStatusCodes.OK;
+    res.status(status).json(createResponse(status, 'Success', result));
+  } catch (error) {
+    next(error);
+  }
 });
 
 /**
@@ -181,55 +176,50 @@ routers.get('/check-unfollower', async (_req: Request, res: Response) => {
  *       200:
  *         description: Resultado do follow
  *       400:
- *         description: Nenhum usuário informado ou lista vazia
- *       500:
- *         description: Erro interno
+ *         description: Nenhum usuário informado ou lista inválida
  */
-routers.post('/new-follower', async (req: Request, res: Response): Promise<void> => {
-    const { usernames } = req.body;
+routers.post('/new-follower', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  const { usernames } = req.body;
 
-    if (!usernames) {
-        res.status(400).json({ error: "Informe 'usernames' com um nome ou lista de usuários." });
-        return;
-    }
+  if (!usernames) {
+    return next(AppError.badRequest("Informe 'usernames' com um nome ou lista de usuários.", 'MISSING_USERNAMES'));
+  }
 
-    const list: string[] = Array.isArray(usernames) ? usernames : [usernames];
+  const list: string[] = Array.isArray(usernames) ? usernames : [usernames];
 
-    if (list.length === 0) {
-        res.status(400).json({ error: "A lista de usuários está vazia." });
-        return;
-    }
+  if (list.length === 0) {
+    return next(AppError.badRequest('A lista de usuários está vazia.', 'EMPTY_USERNAMES'));
+  }
 
-    const invalidUsernames = list.filter(u => typeof u !== 'string' || !isValidUsername(u));
-    if (invalidUsernames.length > 0) {
-        res.status(400).json({ error: "Usernames inválidos.", invalid: invalidUsernames });
-        return;
-    }
+  const invalid = list.filter((u) => typeof u !== 'string' || !isValidUsername(u));
+  if (invalid.length > 0) {
+    return next(AppError.badRequest('Usernames inválidos.', 'INVALID_USERNAMES', { invalid }));
+  }
 
-    try {
-        const results = await Promise.allSettled(
-            list.map(async (username) => {
-                const delay = Math.floor(Math.random() * 2000) + 1000;
-                await new Promise(resolve => setTimeout(resolve, delay));
-                const ok = await newFollower(username);
-                if (!ok) throw new Error(username);
-                return username;
-            })
-        );
+  try {
+    const results = await Promise.allSettled(
+      list.map(async (username) => {
+        const delay = Math.floor(Math.random() * 2000) + 1000;
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        const ok = await newFollower(username);
+        if (!ok) throw new Error(username);
+        return username;
+      }),
+    );
 
-        const success: string[] = [];
-        const failed: string[] = [];
+    const success: string[] = [];
+    const failed: string[] = [];
 
-        results.forEach((result, i) => {
-            if (result.status === 'fulfilled') success.push(result.value);
-            else failed.push(list[i]);
-        });
+    results.forEach((result, i) => {
+      if (result.status === 'fulfilled') success.push(result.value);
+      else failed.push(list[i]);
+    });
 
-        res.json({ success, failed });
-    } catch (error) {
-        console.error('[new-follower]', error instanceof Error ? error.message : error);
-        res.status(500).json({ error: "Erro ao seguir usuário(s)." });
-    }
+    const status = httpStatusCodes.OK;
+    res.status(status).json(createResponse(status, 'Success', { success, failed }));
+  } catch (error) {
+    next(error);
+  }
 });
 
 /**
@@ -254,38 +244,34 @@ routers.post('/new-follower', async (req: Request, res: Response): Promise<void>
  *       200:
  *         description: Resultado do unfollow em lote
  *       400:
- *         description: Lista não informada ou vazia
- *       500:
- *         description: Erro interno
+ *         description: Lista inválida
  */
-routers.delete('/unfollow-users', async (req: Request, res: Response) => {
-    const { usernames } = req.body;
+routers.delete('/unfollow-users', async (req: Request, res: Response, next: NextFunction) => {
+  const { usernames } = req.body;
 
-    if (!Array.isArray(usernames) || usernames.length === 0) {
-        res.status(400).json({ error: "Informe uma lista de usuários em 'usernames'." });
-        return;
-    }
+  if (!Array.isArray(usernames) || usernames.length === 0) {
+    return next(AppError.badRequest("Informe uma lista de usuários em 'usernames'.", 'MISSING_USERNAMES'));
+  }
 
-    const invalidUsernames = usernames.filter(u => typeof u !== 'string' || !isValidUsername(u));
-    if (invalidUsernames.length > 0) {
-        res.status(400).json({ error: "Usernames inválidos.", invalid: invalidUsernames });
-        return;
-    }
+  const invalid = usernames.filter((u) => typeof u !== 'string' || !isValidUsername(u));
+  if (invalid.length > 0) {
+    return next(AppError.badRequest('Usernames inválidos.', 'INVALID_USERNAMES', { invalid }));
+  }
 
-    try {
-        const result = await unfollowUsers(usernames);
-        res.json(result);
-    } catch (error) {
-        console.error('[unfollow-users]', error instanceof Error ? error.message : error);
-        res.status(500).json({ error: "Erro ao processar unfollow em lote." });
-    }
+  try {
+    const result = await unfollowUsers(usernames);
+    const status = httpStatusCodes.OK;
+    res.status(status).json(createResponse(status, 'Success', result));
+  } catch (error) {
+    next(error);
+  }
 });
 
 /**
  * @swagger
  * /filter-organic:
  *   post:
- *     summary: Filtra uma lista de usuários separando orgânicos de suspeitos (bots)
+ *     summary: Filtra usuários separando orgânicos de suspeitos (bots)
  *     tags:
  *       - Seguidores
  *     requestBody:
@@ -303,31 +289,27 @@ routers.delete('/unfollow-users', async (req: Request, res: Response) => {
  *       200:
  *         description: Resultado da filtragem
  *       400:
- *         description: Lista não informada ou vazia
- *       500:
- *         description: Erro interno
+ *         description: Lista inválida
  */
-routers.post('/filter-organic', async (req: Request, res: Response) => {
-    const { usernames } = req.body;
+routers.post('/filter-organic', async (req: Request, res: Response, next: NextFunction) => {
+  const { usernames } = req.body;
 
-    if (!Array.isArray(usernames) || usernames.length === 0) {
-        res.status(400).json({ error: "Informe uma lista de usuários em 'usernames'." });
-        return;
-    }
+  if (!Array.isArray(usernames) || usernames.length === 0) {
+    return next(AppError.badRequest("Informe uma lista de usuários em 'usernames'.", 'MISSING_USERNAMES'));
+  }
 
-    const invalidUsernames = usernames.filter(u => typeof u !== 'string' || !isValidUsername(u));
-    if (invalidUsernames.length > 0) {
-        res.status(400).json({ error: "Usernames inválidos.", invalid: invalidUsernames });
-        return;
-    }
+  const invalid = usernames.filter((u) => typeof u !== 'string' || !isValidUsername(u));
+  if (invalid.length > 0) {
+    return next(AppError.badRequest('Usernames inválidos.', 'INVALID_USERNAMES', { invalid }));
+  }
 
-    try {
-        const result = await filterOrganicFollowers(usernames);
-        res.json(result);
-    } catch (error) {
-        console.error('[filter-organic]', error instanceof Error ? error.message : error);
-        res.status(500).json({ error: "Erro ao filtrar usuários." });
-    }
+  try {
+    const result = await filterOrganicFollowers(usernames);
+    const status = httpStatusCodes.OK;
+    res.status(status).json(createResponse(status, 'Success', result));
+  } catch (error) {
+    next(error);
+  }
 });
 
 /**
@@ -337,17 +319,12 @@ routers.post('/filter-organic', async (req: Request, res: Response) => {
  *     ErrorResponse:
  *       type: object
  *       properties:
- *         error:
- *           type: string
- *     WelcomeResponse:
- *       type: object
- *       properties:
+ *         statusCode:
+ *           type: number
  *         message:
  *           type: string
- *         description:
+ *         code:
  *           type: string
- *         endpoints:
- *           type: object
  */
 
 export { routers };
