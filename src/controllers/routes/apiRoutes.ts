@@ -27,17 +27,6 @@ function isValidUsername(username: string): boolean {
   return /^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,37}[a-zA-Z0-9])?$/.test(username);
 }
 
-/**
- * @swagger
- * /:
- *   get:
- *     summary: Boas-vindas e listagem de endpoints disponíveis
- *     tags:
- *       - Geral
- *     responses:
- *       200:
- *         description: Informações sobre a API
- */
 routers.get('/', (_req: Request, res: Response) => {
   const status = httpStatusCodes.OK;
   res.status(status).json(
