@@ -9,8 +9,15 @@ export const globalApiLimiter = rateLimit({
   legacyHeaders: false,
   handler: (_req, res) => {
     const status = httpStatusCodes.TOO_MANY_REQUESTS;
-    return res.status(status).json(
-      createResponse(status, 'Too many requests, please try again later', undefined, 'RATE_LIMIT_EXCEEDED'),
-    );
+    return res
+      .status(status)
+      .json(
+        createResponse(
+          status,
+          'Too many requests, please try again later',
+          undefined,
+          'RATE_LIMIT_EXCEEDED',
+        ),
+      );
   },
 });

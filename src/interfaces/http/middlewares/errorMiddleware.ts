@@ -14,11 +14,15 @@ export function errorMiddleware(err: unknown, req: Request, res: Response, _next
 
   if (isBodyParserJsonError(err)) {
     const status = httpStatusCodes.BAD_REQUEST;
-    return res.status(status).json(createResponse(status, 'Invalid JSON body', undefined, 'INVALID_JSON'));
+    return res
+      .status(status)
+      .json(createResponse(status, 'Invalid JSON body', undefined, 'INVALID_JSON'));
   }
 
   if (err instanceof AppError) {
-    return res.status(err.statusCode).json(createResponse(err.statusCode, err.message, err.data, err.code));
+    return res
+      .status(err.statusCode)
+      .json(createResponse(err.statusCode, err.message, err.data, err.code));
   }
 
   const isProd = process.env.NODE_ENV === 'production';
@@ -31,18 +35,21 @@ export function errorMiddleware(err: unknown, req: Request, res: Response, _next
       : httpStatusCodes.INTERNAL_SERVER_ERROR;
 
   const isServerError = status >= 500;
-  const message = isServerError && isProd ? 'Internal server error' : legacy.message || 'Internal server error';
+  const message =
+    isServerError && isProd ? 'Internal server error' : legacy.message || 'Internal server error';
 
   if (process.env.NODE_ENV !== 'test') {
     console.error(`[${status}] ${req.method} ${req.originalUrl} - ${message}`);
   }
 
-  return res.status(status).json(
-    createResponse(
-      status,
-      message,
-      undefined,
-      isServerError ? 'INTERNAL_SERVER_ERROR' : 'UNEXPECTED_ERROR',
-    ),
-  );
+  return res
+    .status(status)
+    .json(
+      createResponse(
+        status,
+        message,
+        undefined,
+        isServerError ? 'INTERNAL_SERVER_ERROR' : 'UNEXPECTED_ERROR',
+      ),
+    );
 }

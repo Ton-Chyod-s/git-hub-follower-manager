@@ -1,5 +1,5 @@
-interface FollowingData{
-    Name: string;
+interface FollowingData {
+  Name: string;
 }
 
 export type { FollowingData };

@@ -26,7 +26,11 @@ export class AppError extends Error {
     return new AppError({ statusCode: 404, message, code, data });
   }
 
-  static internal(message = 'Internal server error', code = 'INTERNAL_SERVER_ERROR', data?: unknown) {
+  static internal(
+    message = 'Internal server error',
+    code = 'INTERNAL_SERVER_ERROR',
+    data?: unknown,
+  ) {
     return new AppError({ statusCode: 500, message, code, data });
   }
 }

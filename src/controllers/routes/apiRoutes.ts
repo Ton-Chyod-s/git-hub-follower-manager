@@ -15,7 +15,9 @@ function getAuthenticatedUser(res: Response): string | null {
   const user = process.env.USER;
   if (!user) {
     const status = httpStatusCodes.INTERNAL_SERVER_ERROR;
-    res.status(status).json(createResponse(status, 'GitHub user not configured', undefined, 'USER_NOT_SET'));
+    res
+      .status(status)
+      .json(createResponse(status, 'GitHub user not configured', undefined, 'USER_NOT_SET'));
     return null;
   }
   return user;
@@ -107,14 +109,21 @@ routers.post('/follow-users', async (req: Request, res: Response, next: NextFunc
   const { targetUser } = req.body;
 
   if (!targetUser || typeof targetUser !== 'string' || !isValidUsername(targetUser)) {
-    return next(AppError.badRequest("Informe 'targetUser' com um nome de usuário GitHub válido.", 'INVALID_TARGET_USER'));
+    return next(
+      AppError.badRequest(
+        "Informe 'targetUser' com um nome de usuário GitHub válido.",
+        'INVALID_TARGET_USER',
+      ),
+    );
   }
 
   const myUser = getAuthenticatedUser(res);
   if (!myUser) return;
 
   const status = httpStatusCodes.OK;
-  res.status(status).json(createResponse(status, 'Processo iniciado em background.', { targetUser }));
+  res
+    .status(status)
+    .json(createResponse(status, 'Processo iniciado em background.', { targetUser }));
 
   setImmediate(async () => {
     try {
@@ -178,49 +187,57 @@ routers.get('/check-unfollower', async (_req: Request, res: Response, next: Next
  *       400:
  *         description: Nenhum usuário informado ou lista inválida
  */
-routers.post('/new-follower', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  const { usernames } = req.body;
+routers.post(
+  '/new-follower',
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    const { usernames } = req.body;
 
-  if (!usernames) {
-    return next(AppError.badRequest("Informe 'usernames' com um nome ou lista de usuários.", 'MISSING_USERNAMES'));
-  }
+    if (!usernames) {
+      return next(
+        AppError.badRequest(
+          "Informe 'usernames' com um nome ou lista de usuários.",
+          'MISSING_USERNAMES',
+        ),
+      );
+    }
 
-  const list: string[] = Array.isArray(usernames) ? usernames : [usernames];
+    const list: string[] = Array.isArray(usernames) ? usernames : [usernames];
 
-  if (list.length === 0) {
-    return next(AppError.badRequest('A lista de usuários está vazia.', 'EMPTY_USERNAMES'));
-  }
+    if (list.length === 0) {
+      return next(AppError.badRequest('A lista de usuários está vazia.', 'EMPTY_USERNAMES'));
+    }
 
-  const invalid = list.filter((u) => typeof u !== 'string' || !isValidUsername(u));
-  if (invalid.length > 0) {
-    return next(AppError.badRequest('Usernames inválidos.', 'INVALID_USERNAMES', { invalid }));
-  }
+    const invalid = list.filter((u) => typeof u !== 'string' || !isValidUsername(u));
+    if (invalid.length > 0) {
+      return next(AppError.badRequest('Usernames inválidos.', 'INVALID_USERNAMES', { invalid }));
+    }
 
-  try {
-    const results = await Promise.allSettled(
-      list.map(async (username) => {
-        const delay = Math.floor(Math.random() * 2000) + 1000;
-        await new Promise((resolve) => setTimeout(resolve, delay));
-        const ok = await newFollower(username);
-        if (!ok) throw new Error(username);
-        return username;
-      }),
-    );
+    try {
+      const results = await Promise.allSettled(
+        list.map(async (username) => {
+          const delay = Math.floor(Math.random() * 2000) + 1000;
+          await new Promise((resolve) => setTimeout(resolve, delay));
+          const ok = await newFollower(username);
+          if (!ok) throw new Error(username);
+          return username;
+        }),
+      );
 
-    const success: string[] = [];
-    const failed: string[] = [];
+      const success: string[] = [];
+      const failed: string[] = [];
 
-    results.forEach((result, i) => {
-      if (result.status === 'fulfilled') success.push(result.value);
-      else failed.push(list[i]);
-    });
+      results.forEach((result, i) => {
+        if (result.status === 'fulfilled') success.push(result.value);
+        else failed.push(list[i]);
+      });
 
-    const status = httpStatusCodes.OK;
-    res.status(status).json(createResponse(status, 'Success', { success, failed }));
-  } catch (error) {
-    next(error);
-  }
-});
+      const status = httpStatusCodes.OK;
+      res.status(status).json(createResponse(status, 'Success', { success, failed }));
+    } catch (error) {
+      next(error);
+    }
+  },
+);
 
 /**
  * @swagger
@@ -250,7 +267,9 @@ routers.delete('/unfollow-users', async (req: Request, res: Response, next: Next
   const { usernames } = req.body;
 
   if (!Array.isArray(usernames) || usernames.length === 0) {
-    return next(AppError.badRequest("Informe uma lista de usuários em 'usernames'.", 'MISSING_USERNAMES'));
+    return next(
+      AppError.badRequest("Informe uma lista de usuários em 'usernames'.", 'MISSING_USERNAMES'),
+    );
   }
 
   const invalid = usernames.filter((u) => typeof u !== 'string' || !isValidUsername(u));
@@ -295,7 +314,9 @@ routers.post('/filter-organic', async (req: Request, res: Response, next: NextFu
   const { usernames } = req.body;
 
   if (!Array.isArray(usernames) || usernames.length === 0) {
-    return next(AppError.badRequest("Informe uma lista de usuários em 'usernames'.", 'MISSING_USERNAMES'));
+    return next(
+      AppError.badRequest("Informe uma lista de usuários em 'usernames'.", 'MISSING_USERNAMES'),
+    );
   }
 
   const invalid = usernames.filter((u) => typeof u !== 'string' || !isValidUsername(u));
