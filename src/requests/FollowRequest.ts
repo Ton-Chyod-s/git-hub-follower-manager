@@ -1,30 +1,33 @@
+import * as dotenv from "dotenv";
+import * as path from "path";
 
-require('dotenv').config({ path: "src\\config\\.env" });
+dotenv.config({ path: path.resolve(__dirname, "../config/.env") });
 
-export async function newFollower(newFollower: string): Promise<Boolean | null> {
-    try{
+export async function newFollower(username: string): Promise<boolean> {
+    try {
         const key = process.env.KEY;
         if (!key) {
-            throw new Error("Chave não encontrada.");
+            console.error("[newFollower] Variável KEY não configurada.");
+            return false;
         }
 
-        const response = await fetch(`https://api.github.com/user/following/${newFollower}`, {
+        const response = await fetch(`https://api.github.com/user/following/${username}`, {
             method: "PUT",
             headers: {
-                Authorization: `Bearer ${key}`,	
-                'Accept': 'application/vnd.github+json'
+                Authorization: `Bearer ${key}`,
+                Accept: "application/vnd.github+json",
             },
         });
-    
+
         if (!response.ok) {
-            throw new Error(`Erro: ${response.status} - ${response.statusText}`);
-            
+            console.error(`[newFollower] Erro HTTP ${response.status} ao seguir ${username}`);
+            return false;
         }
 
+        return true;
+
     } catch (error) {
-        console.error(error);
+        console.error(`[newFollower] Erro ao seguir ${username}:`, error instanceof Error ? error.message : error);
         return false;
     }
-    
-    return true;
 }
