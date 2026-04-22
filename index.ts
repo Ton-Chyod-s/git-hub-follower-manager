@@ -12,6 +12,7 @@ dotenv.config({ path: path.resolve(__dirname, 'src/config/.env') });
 
 const server: Application = express();
 const port = process.env.PORT || 3000;
+const env = process.env.NODE_ENV || 'production';
 
 server.disable('x-powered-by');
 
@@ -27,6 +28,9 @@ RegisterRoutes(server);
 server.use(errorMiddleware as ErrorRequestHandler);
 
 server.listen(port, () => {
-  console.log(`Server running on http://localhost:${port}`);
-  console.log(`Swagger docs available at http://localhost:${port}/api-docs`);
+  if (env === 'development') {
+    console.log(`Server running on http://localhost:${port}`);
+    console.log(`Swagger docs available at http://localhost:${port}/api-docs`);
+  }
+  
 });
