@@ -1,5 +1,6 @@
 import express, { Application, ErrorRequestHandler } from 'express';
 import helmet from 'helmet';
+import cors from 'cors';
 import swaggerUi from 'swagger-ui-express';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
@@ -17,6 +18,11 @@ const env = process.env.NODE_ENV || 'production';
 server.disable('x-powered-by');
 
 server.use(helmet());
+server.use(cors({
+  origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+  methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type'],
+}));
 server.use(express.json({ limit: '10kb' }));
 
 server.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
@@ -32,5 +38,4 @@ server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}`);
     console.log(`Swagger docs available at http://localhost:${port}/api-docs`);
   }
-  
 });
