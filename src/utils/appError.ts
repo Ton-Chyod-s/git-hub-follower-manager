@@ -22,15 +22,23 @@ export class AppError extends Error {
     return new AppError({ statusCode: 400, message, code, data });
   }
 
+  static unauthorized(message = 'Unauthorized', code = 'UNAUTHORIZED', data?: unknown) {
+    return new AppError({ statusCode: 401, message, code, data });
+  }
+
+  static forbidden(message = 'Forbidden', code = 'FORBIDDEN', data?: unknown) {
+    return new AppError({ statusCode: 403, message, code, data });
+  }
+
   static notFound(message = 'Not found', code = 'NOT_FOUND', data?: unknown) {
     return new AppError({ statusCode: 404, message, code, data });
   }
 
-  static internal(
-    message = 'Internal server error',
-    code = 'INTERNAL_SERVER_ERROR',
-    data?: unknown,
-  ) {
+  static conflict(message = 'Conflict', code = 'CONFLICT', data?: unknown) {
+    return new AppError({ statusCode: 409, message, code, data });
+  }
+
+  static internal(message = 'Internal server error', code = 'INTERNAL_SERVER_ERROR', data?: unknown) {
     return new AppError({ statusCode: 500, message, code, data });
   }
 }

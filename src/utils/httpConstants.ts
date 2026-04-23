@@ -1,18 +1,3 @@
-export const errorMessages = {
-  GENERAL: {
-    SUCCESS: 'Operation completed successfully',
-    UNEXPECTED_ERROR: 'Unexpected error',
-    INVALID_INPUT: 'Invalid input data',
-    SERVER_ERROR: 'Internal server error',
-  },
-  GITHUB: {
-    USER_NOT_FOUND: 'GitHub user not found',
-    API_ERROR: 'GitHub API error',
-    KEY_NOT_SET: 'GitHub token not configured',
-    USER_NOT_SET: 'GitHub user not configured',
-  },
-} as const;
-
 export const httpStatusCodes = {
   OK: 200,
   CREATED: 201,

@@ -1,6 +1,7 @@
 import express, { Application, ErrorRequestHandler } from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import swaggerUi from 'swagger-ui-express';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
@@ -18,12 +19,16 @@ const env = process.env.NODE_ENV || 'production';
 server.disable('x-powered-by');
 
 server.use(helmet());
-server.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
-  methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type'],
-}));
+server.use(
+  cors({
+    origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+    methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
+  }),
+);
 server.use(express.json({ limit: '10kb' }));
+server.use(cookieParser());
 
 server.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
