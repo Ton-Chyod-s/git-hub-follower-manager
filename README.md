@@ -1,134 +1,132 @@
-# GitHub Follower Manager
+# GitHub Follower Manager API
 
-O **GitHub Follower Manager** é uma API REST para automação de gerenciamento de seguidores no GitHub. Permite verificar reciprocidade de follows, seguir e deixar de seguir usuários em lote, clonar seguidores de perfis referência e filtrar bots automaticamente.
-
----
-
-## Tecnologias Utilizadas
-
-- **Node.js + TypeScript** – ambiente robusto e tipado
-- **Express** – framework HTTP
-- **Axios** – requisições à API do GitHub
-- **Puppeteer** – automação e web scraping
-- **Cheerio** – parsing de HTML
-- **Swagger UI** – documentação interativa dos endpoints
-- **Dotenv** – gerenciamento de variáveis de ambiente
-- **ts-node / nodemon** – execução e hot reload em desenvolvimento
+API REST para gerenciamento de seguidores do GitHub. Permite verificar reciprocidade de follows, seguir/deixar de seguir em lote, clonar seguidores de perfis referência e filtrar bots. Inclui sistema completo de autenticação com JWT e OAuth via GitHub.
 
 ---
 
-## Estrutura do Projeto
+## Stack
 
-```bash
-github-follower-manager/
-├── index.ts                        # Entry point da aplicação
-├── src/
-│   ├── config/
-│   │   ├── .env                    # Variáveis de ambiente (não versionar)
-│   │   ├── .env-example.txt        # Exemplo de configuração
-│   │   └── swagger.ts              # Configuração do Swagger
-│   ├── controllers/
-│   │   ├── RegisterRoutes.ts       # Registro central de rotas
-│   │   └── routes/
-│   │       └── apiRoutes.ts        # Definição de todos os endpoints
-│   ├── models/
-│   │   └── request/                # Interfaces TypeScript dos requests
-│   ├── requests/                   # Funções de requisição à API do GitHub
-│   └── services/
-│       ├── webScraping/            # Scraping com Puppeteer
-│       └── useCases/               # Lógica de negócio por caso de uso
-│           ├── checkFollowerAndFollowing/
-│           ├── checkUnfollowAndFollow/
-│           ├── fetchUserFollowData/
-│           ├── filterOrganicFollowers/
-│           ├── followUsersFollowers/
-│           ├── logChangeCount/
-│           └── unfollowUsers/
+- **Node.js + TypeScript**
+- **Express** — framework HTTP
+- **Neon Serverless** — PostgreSQL serverless
+- **Argon2** — hash de senhas
+- **JWT** — autenticação stateless
+- **Zod** — validação de schemas
+- **Swagger UI** — documentação interativa
+
+---
+
+## Arquitetura
+
+Modular com camadas internas inspirada em Clean Architecture.
+
+```
+src/
+├── auth/                   # Módulo de autenticação
+│   ├── controllers/        # Recebe req/res, chama usecases
+│   ├── middleware/         # authMiddleware, requireRole
+│   ├── repositories/       # Acesso ao banco (users, refresh_tokens)
+│   ├── routes/             # Endpoints + JSDoc Swagger
+│   └── usecases/           # Regras de negócio
+├── github/                 # Módulo de gerenciamento de seguidores
+│   ├── requests/           # Chamadas HTTP à API do GitHub
+│   ├── routes/             # Endpoints + JSDoc Swagger
+│   ├── types/              # Interfaces TypeScript
+│   └── usecases/           # Regras de negócio
+├── shared/
+│   └── middlewares/        # Error handler global, rate limit
+├── config/                 # Swagger, variáveis de ambiente
+├── db/                     # Client Neon + migrations SQL
+└── utils/                  # Helpers compartilhados (jwt, hash, AppError...)
 ```
 
 ---
 
-## Instalação Local
+## Instalação
 
 ### Requisitos
 
-- [Node.js](https://nodejs.org/) v18 ou superior
-- Conta no GitHub com **token de acesso pessoal (PAT)**
+- Node.js v18+
+- Projeto no [Neon](https://neon.tech)
+- GitHub Personal Access Token (escopo `user`)
+- GitHub OAuth App (para login social)
 
-> Gere seu token em: **GitHub > Settings > Developer settings > Personal access tokens**. Permissão necessária: escopo `user` (follow/unfollow).
-
-### 1. Clonar o repositório
-
-```bash
-git clone https://github.com/Ton-Chyod-s/fallowbackgit.git
-cd fallowbackgit
-```
-
-### 2. Instalar dependências
+### 1. Instalar dependências
 
 ```bash
 npm install
 ```
 
-### 3. Configurar variáveis de ambiente
+### 2. Configurar variáveis de ambiente
 
 ```bash
-cp src/config/.env-example.txt src/config/.env
+cp src/config/.env.example src/config/.env
 ```
 
-Edite `src/config/.env`:
+| Variável | Descrição |
+|---|---|
+| `DATABASE_URL` | Connection string do Neon |
+| `JWT_SECRET` | Segredo para assinar tokens (mín. 32 chars) |
+| `JWT_EXPIRES_IN` | Expiração do access token (ex: `15m`) |
+| `KEY` | GitHub Personal Access Token |
+| `USER` | Seu username do GitHub |
+| `GITHUB_CLIENT_ID` | ID do OAuth App |
+| `GITHUB_CLIENT_SECRET` | Secret do OAuth App |
+| `GITHUB_REDIRECT_URI` | Callback URL do OAuth |
+| `CORS_ORIGIN` | URL do frontend (ex: `http://localhost:5173`) |
 
-```env
-USER=seu_login_github
-KEY=ghp_xxxxxxxxxxxxxxxxxxxx
+> Gere seu PAT em: **GitHub > Settings > Developer settings > Personal access tokens**
+> Crie um OAuth App em: **GitHub > Settings > Developer settings > OAuth Apps**
+
+### 3. Rodar a migration
+
+```bash
+psql "$DATABASE_URL" -f src/db/migrations/001_create_auth_tables.sql
 ```
 
-| Variável | Descrição                         |
-|----------|-----------------------------------|
-| `USER`   | Login do usuário GitHub           |
-| `KEY`    | Token de acesso pessoal do GitHub |
+Ou cole o conteúdo do arquivo diretamente no **SQL Editor** do Neon.
 
 ### 4. Rodar a aplicação
 
 ```bash
-# Desenvolvimento (hot reload)
+# desenvolvimento (hot reload)
 npm run dev
 
-# Produção
-npm run build
-npm start
+# produção
+npm run build && npm start
 ```
 
-| Serviço        | URL                              |
-|----------------|----------------------------------|
-| API            | http://localhost:3000            |
-| Swagger (docs) | http://localhost:3000/api-docs   |
-
-### Web Scraping (opcional)
-
-Para funcionalidades que utilizam automação via Puppeteer:
-
-```bash
-node ./src/services/webScraping/webScrapingData.js
-```
-
-Siga as instruções exibidas no terminal.
+| Serviço | URL |
+|---|---|
+| API | http://localhost:3000 |
+| Swagger | http://localhost:3000/api-docs |
 
 ---
 
 ## Endpoints
 
-| Método     | Rota                | Descrição                                                     |
-|------------|---------------------|---------------------------------------------------------------|
-| `GET`      | `/`                 | Boas-vindas e listagem dos endpoints disponíveis              |
-| `GET`      | `/check-follower`   | Lista quem você segue mas não te segue de volta               |
-| `GET`      | `/check-unfollower` | Lista quem te segue mas você ainda não segue de volta         |
-| `POST`     | `/follow-users`     | Copia e segue os seguidores orgânicos de uma conta referência |
-| `POST`     | `/new-follower`     | Segue um ou mais usuários específicos                         |
-| `DELETE`   | `/unfollow-users`   | Para de seguir uma lista de usuários em lote                  |
-| `POST`     | `/filter-organic`   | Separa usuários orgânicos de suspeitos (bots)                 |
+### Autenticação
 
-> A autenticação é feita via variáveis de ambiente. Não há token por requisição.
+| Método | Rota | Descrição |
+|---|---|---|
+| `POST` | `/auth/register` | Cria nova conta |
+| `POST` | `/auth/login` | Login com email e senha |
+| `POST` | `/auth/refresh` | Renova o access token |
+| `POST` | `/auth/logout` | Logout e invalida tokens |
+| `GET` | `/auth/me` | Retorna dados do usuário autenticado |
+| `GET` | `/auth/github` | Inicia fluxo OAuth com GitHub |
+| `GET` | `/auth/github/callback` | Callback do OAuth GitHub |
+
+### GitHub Follower
+
+| Método | Rota | Descrição |
+|---|---|---|
+| `GET` | `/check-follower` | Quem você segue mas não te segue de volta |
+| `GET` | `/check-unfollower` | Quem te segue mas você ainda não segue |
+| `POST` | `/follow-users` | Segue seguidores orgânicos de um usuário alvo |
+| `POST` | `/new-follower` | Segue um ou mais usuários específicos |
+| `DELETE` | `/unfollow-users` | Deixa de seguir uma lista de usuários |
+| `POST` | `/filter-organic` | Separa usuários orgânicos de suspeitos (bots) |
 
 ### Exemplos de body
 
@@ -154,10 +152,19 @@ Siga as instruções exibidas no terminal.
 
 ---
 
-## Contribuição
+## Scripts
 
-Contribuições são bem-vindas. Abra uma issue ou pull request.
+```bash
+npm run dev          # desenvolvimento com hot reload
+npm run build        # compila para dist/
+npm start            # inicia a build de produção
+npm run lint         # verifica linting
+npm run lint:fix     # corrige linting automaticamente
+npm run format       # formata com Prettier
+```
+
+---
 
 ## Licença
 
-Este projeto está licenciado sob a [MIT License](./LICENSE).
+ISC
