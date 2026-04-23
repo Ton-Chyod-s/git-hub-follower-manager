@@ -1,27 +1,8 @@
-import { sql } from '../../db/client';
+import { prisma } from '../../db/client';
 import { AppError } from '../../utils/app-error';
+import type { User, UserRole } from '@prisma/client';
 
-export type UserRole = 'USER' | 'ADMIN';
-
-export type UserRecord = {
-  id: string;
-  name: string;
-  email: string;
-  password_hash: string | null;
-  github_id: string | null;
-  role: UserRole;
-  token_version: number;
-  created_at: Date;
-  updated_at: Date;
-};
-
-export type SafeUser = {
-  id: string;
-  name: string;
-  email: string;
-  role: UserRole;
-  token_version: number;
-};
+export type { User, UserRole };
 
 export type CreateUserData = {
   name: string;
@@ -36,46 +17,32 @@ export type UpsertGithubUserData = {
 };
 
 export class UserRepository {
-  async findByEmail(email: string): Promise<UserRecord | null> {
-    const rows = await sql`
-      SELECT id, name, email, password_hash, github_id, role, token_version, created_at, updated_at
-      FROM users
-      WHERE email = ${email.trim().toLowerCase()}
-      LIMIT 1
-    `;
-    return (rows[0] as UserRecord) ?? null;
+  async findByEmail(email: string): Promise<User | null> {
+    return prisma.user.findUnique({
+      where: { email: email.trim().toLowerCase() },
+    });
   }
 
-  async findById(id: string): Promise<UserRecord | null> {
-    const rows = await sql`
-      SELECT id, name, email, password_hash, github_id, role, token_version, created_at, updated_at
-      FROM users
-      WHERE id = ${id}
-      LIMIT 1
-    `;
-    return (rows[0] as UserRecord) ?? null;
+  async findById(id: string): Promise<User | null> {
+    return prisma.user.findUnique({ where: { id } });
   }
 
-  async findByGithubId(githubId: string): Promise<UserRecord | null> {
-    const rows = await sql`
-      SELECT id, name, email, password_hash, github_id, role, token_version, created_at, updated_at
-      FROM users
-      WHERE github_id = ${githubId}
-      LIMIT 1
-    `;
-    return (rows[0] as UserRecord) ?? null;
+  async findByGithubId(githubId: string): Promise<User | null> {
+    return prisma.user.findUnique({ where: { github_id: githubId } });
   }
 
-  async create(data: CreateUserData): Promise<SafeUser> {
-    const rows = await sql`
-      INSERT INTO users (name, email, password_hash)
-      VALUES (${data.name.trim()}, ${data.email.trim().toLowerCase()}, ${data.passwordHash})
-      RETURNING id, name, email, role, token_version
-    `;
-    return rows[0] as SafeUser;
+  async create(data: CreateUserData) {
+    return prisma.user.create({
+      data: {
+        name: data.name.trim(),
+        email: data.email.trim().toLowerCase(),
+        password_hash: data.passwordHash,
+      },
+      select: { id: true, name: true, email: true, role: true, token_version: true },
+    });
   }
 
-  async upsertByGithubId(data: UpsertGithubUserData): Promise<{ user: UserRecord; created: boolean }> {
+  async upsertByGithubId(data: UpsertGithubUserData): Promise<{ user: User; created: boolean }> {
     const normalizedEmail = data.email.trim().toLowerCase();
 
     const existingByGithub = await this.findByGithubId(data.githubId);
@@ -91,20 +58,25 @@ export class UserRepository {
       );
     }
 
-    const rows = await sql`
-      INSERT INTO users (name, email, github_id, role)
-      VALUES (${data.name.trim()}, ${normalizedEmail}, ${data.githubId}, 'USER')
-      RETURNING id, name, email, password_hash, github_id, role, token_version, created_at, updated_at
-    `;
+    const user = await prisma.user.create({
+      data: {
+        name: data.name.trim(),
+        email: normalizedEmail,
+        github_id: data.githubId,
+        role: 'USER',
+      },
+    });
 
-    return { user: rows[0] as UserRecord, created: true };
+    return { user, created: true };
   }
 
   async incrementTokenVersion(userId: string): Promise<void> {
-    await sql`
-      UPDATE users
-      SET token_version = token_version + 1, updated_at = NOW()
-      WHERE id = ${userId}
-    `;
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        token_version: { increment: 1 },
+        updated_at: new Date(),
+      },
+    });
   }
 }

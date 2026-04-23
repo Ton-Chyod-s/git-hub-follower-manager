@@ -1,8 +1,7 @@
 import { FollowingData } from '../types/following-data';
 import * as dotenv from 'dotenv';
-import * as path from 'path';
 
-dotenv.config({ path: path.resolve(__dirname, '../../config/.env') });
+dotenv.config();
 
 async function GetFollowingData(username: string, page: number): Promise<FollowingData[] | null> {
   try {

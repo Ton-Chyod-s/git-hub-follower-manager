@@ -22,6 +22,8 @@
   "license": "ISC",
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
+    "@prisma/adapter-neon": "^7.8.0",
+    "@prisma/client": "^7.8.0",
     "argon2": "^0.44.0",
     "axios": "^1.6.8",
     "cheerio": "^1.0.0-rc.12",
@@ -52,6 +54,7 @@
     "eslint": "^10.2.1",
     "eslint-config-prettier": "^10.1.8",
     "prettier": "^3.8.3",
+    "prisma": "^7.8.0",
     "rimraf": "^5.0.5",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.3"

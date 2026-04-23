@@ -1,16 +1,20 @@
 import * as dotenv from 'dotenv';
-import * as path from 'path';
-import { neon } from '@neondatabase/serverless';
-import nodeFetch from 'node-fetch';
 
-dotenv.config({ path: path.resolve(__dirname, '../config/.env') });
+dotenv.config();
 
-if (!globalThis.fetch) {
-  (globalThis as unknown as Record<string, unknown>).fetch = nodeFetch;
-}
+import { PrismaClient } from '@prisma/client';
+import { PrismaNeon } from '@prisma/adapter-neon';
 
 if (!process.env.DATABASE_URL) {
   throw new Error('DATABASE_URL environment variable is required');
 }
 
-export const sql = neon(process.env.DATABASE_URL);
+const adapter = new PrismaNeon({ connectionString: process.env.DATABASE_URL });
+
+const globalForPrisma = global as unknown as { prisma: PrismaClient };
+
+export const prisma = globalForPrisma.prisma ?? new PrismaClient({ adapter });
+
+if (process.env.NODE_ENV !== 'production') {
+  globalForPrisma.prisma = prisma;
+}

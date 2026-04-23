@@ -1,13 +1,7 @@
-import { sql } from '../../db/client';
+import { prisma } from '../../db/client';
+import type { RefreshToken } from '@prisma/client';
 
-export type RefreshTokenRecord = {
-  id: string;
-  user_id: string;
-  token_hash: string;
-  expires_at: Date;
-  used_at: Date | null;
-  created_at: Date;
-};
+export type { RefreshToken };
 
 export type CreateRefreshTokenInput = {
   userId: string;
@@ -16,48 +10,47 @@ export type CreateRefreshTokenInput = {
 };
 
 export class RefreshTokenRepository {
-  async replaceTokenForUser(input: CreateRefreshTokenInput): Promise<RefreshTokenRecord> {
-    await sql`DELETE FROM refresh_tokens WHERE user_id = ${input.userId}`;
+  async replaceTokenForUser(input: CreateRefreshTokenInput): Promise<RefreshToken> {
+    await prisma.refreshToken.deleteMany({ where: { user_id: input.userId } });
 
-    const rows = await sql`
-      INSERT INTO refresh_tokens (user_id, token_hash, expires_at)
-      VALUES (${input.userId}, ${input.tokenHash}, ${input.expiresAt})
-      RETURNING id, user_id, token_hash, expires_at, used_at, created_at
-    `;
-    return rows[0] as RefreshTokenRecord;
+    return prisma.refreshToken.create({
+      data: {
+        user_id: input.userId,
+        token_hash: input.tokenHash,
+        expires_at: input.expiresAt,
+      },
+    });
   }
 
   async consumeByTokenHash(tokenHash: string): Promise<string | null> {
     const now = new Date();
 
-    const found = await sql`
-      SELECT id, user_id
-      FROM refresh_tokens
-      WHERE token_hash = ${tokenHash}
-        AND used_at IS NULL
-        AND expires_at > ${now}
-      LIMIT 1
-    `;
+    const token = await prisma.refreshToken.findFirst({
+      where: {
+        token_hash: tokenHash,
+        used_at: null,
+        expires_at: { gt: now },
+      },
+      select: { id: true, user_id: true },
+    });
 
-    if (!found[0]) return null;
+    if (!token) return null;
 
-    const record = found[0] as { id: string; user_id: string };
+    const updated = await prisma.refreshToken.updateMany({
+      where: {
+        id: token.id,
+        used_at: null,
+        expires_at: { gt: now },
+      },
+      data: { used_at: now },
+    });
 
-    const updated = await sql`
-      UPDATE refresh_tokens
-      SET used_at = ${now}
-      WHERE id = ${record.id}
-        AND used_at IS NULL
-        AND expires_at > ${now}
-    `;
+    if (updated.count !== 1) return null;
 
-    const count = (updated as unknown as { rowCount?: number }).rowCount ?? 0;
-    if (count !== 1) return null;
-
-    return record.user_id;
+    return token.user_id;
   }
 
   async deleteByUserId(userId: string): Promise<void> {
-    await sql`DELETE FROM refresh_tokens WHERE user_id = ${userId}`;
+    await prisma.refreshToken.deleteMany({ where: { user_id: userId } });
   }
 }

@@ -1,8 +1,7 @@
 import { GitHubUser } from '../types/github-user';
 import * as dotenv from 'dotenv';
-import * as path from 'path';
 
-dotenv.config({ path: path.resolve(__dirname, '../../config/.env') });
+dotenv.config();
 
 async function getUserData(username: string): Promise<GitHubUser | null> {
   try {

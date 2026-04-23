@@ -60,7 +60,7 @@ npm install
 ### 2. Configurar variáveis de ambiente
 
 ```bash
-cp src/config/.env.example src/config/.env
+cp .env.example .env
 ```
 
 | Variável | Descrição |

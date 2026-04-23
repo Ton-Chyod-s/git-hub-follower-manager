@@ -11,7 +11,7 @@ import { routers as githubRoutes } from './src/github/routes/github.routes';
 import { errorMiddleware } from './src/shared/middlewares/error-middleware';
 import { globalApiLimiter } from './src/shared/middlewares/rate-limit-middleware';
 
-dotenv.config({ path: path.resolve(__dirname, 'src/config/.env') });
+dotenv.config();
 
 const server: Application = express();
 const port = process.env.PORT || 3000;
