@@ -3,8 +3,8 @@ import rateLimit from 'express-rate-limit';
 import { register, login, refreshToken, logout, me } from '../controllers/auth-controller';
 import { githubAuth, githubCallback } from '../controllers/github-controller';
 import { authMiddleware } from '../middleware/auth-middleware';
-import { createResponse } from '../../utils/createResponse';
-import { httpStatusCodes } from '../../utils/httpConstants';
+import { createResponse } from '../../utils/create-response';
+import { httpStatusCodes } from '../../utils/http-constants';
 
 const router = Router();
 

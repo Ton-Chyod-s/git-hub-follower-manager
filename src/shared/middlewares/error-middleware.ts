@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
-import { AppError } from '../../../utils/appError';
-import { createResponse } from '../../../utils/createResponse';
-import { httpStatusCodes } from '../../../utils/httpConstants';
+import { AppError } from '../../utils/app-error';
+import { createResponse } from '../../utils/create-response';
+import { httpStatusCodes } from '../../utils/http-constants';
 
 function isBodyParserJsonError(err: unknown): boolean {
   if (!(err instanceof SyntaxError)) return false;

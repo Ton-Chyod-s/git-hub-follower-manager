@@ -5,10 +5,11 @@ import cookieParser from 'cookie-parser';
 import swaggerUi from 'swagger-ui-express';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
-import { RegisterRoutes } from './src/controllers/RegisterRoutes';
 import { swaggerSpec } from './src/config/swagger';
-import { errorMiddleware } from './src/interfaces/http/middlewares/errorMiddleware';
-import { globalApiLimiter } from './src/interfaces/http/middlewares/rateLimitMiddleware';
+import authRoutes from './src/auth/routes/auth.routes';
+import { routers as githubRoutes } from './src/github/routes/github.routes';
+import { errorMiddleware } from './src/shared/middlewares/error-middleware';
+import { globalApiLimiter } from './src/shared/middlewares/rate-limit-middleware';
 
 dotenv.config({ path: path.resolve(__dirname, 'src/config/.env') });
 
@@ -34,7 +35,8 @@ server.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 server.use('/', globalApiLimiter);
 
-RegisterRoutes(server);
+server.use('/', authRoutes);
+server.use('/', githubRoutes);
 
 server.use(errorMiddleware as ErrorRequestHandler);
 

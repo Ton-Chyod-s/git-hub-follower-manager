@@ -5,7 +5,7 @@ import { RefreshTokenRepository } from '../repositories/refresh-token-repository
 import { verifyPassword } from '../../utils/password';
 import { signToken } from '../../utils/jwt';
 import { sha256Hex } from '../../utils/hash';
-import { AppError } from '../../utils/appError';
+import { AppError } from '../../utils/app-error';
 
 export const loginSchema = z.object({
   email: z

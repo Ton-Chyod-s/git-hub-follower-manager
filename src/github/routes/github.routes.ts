@@ -1,13 +1,13 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { CheckFollowerWithFollowing } from '../../services/useCases/checkFollowerAndFollowing/CheckFollowerWithFollowingUseCase';
-import { FollowUsersFollowers } from '../../services/useCases/followUsersFollowers/FollowUsersFollowersUseCase';
-import { newFollower } from '../../requests/FollowRequest';
-import { checkUnfollowAndFollow } from '../../services/useCases/checkUnfollowAndFollow/checkUnfollowAndFollowUseCase';
-import { unfollowUsers } from '../../services/useCases/unfollowUsers/UnfollowUsersUseCase';
-import { filterOrganicFollowers } from '../../services/useCases/filterOrganicFollowers/FilterOrganicFollowersUseCase';
-import { AppError } from '../../utils/appError';
-import { createResponse } from '../../utils/createResponse';
-import { httpStatusCodes } from '../../utils/httpConstants';
+import { CheckFollowerWithFollowing } from '../usecases/check-follower-with-following-usecase';
+import { FollowUsersFollowers } from '../usecases/follow-users-followers-usecase';
+import { newFollower } from '../requests/follow-request';
+import { checkUnfollowAndFollow } from '../usecases/check-unfollow-and-follow-usecase';
+import { unfollowUsers } from '../usecases/unfollow-users-usecase';
+import { filterOrganicFollowers } from '../usecases/filter-organic-followers-usecase';
+import { AppError } from '../../utils/app-error';
+import { createResponse } from '../../utils/create-response';
+import { httpStatusCodes } from '../../utils/http-constants';
 
 const routers = Router();
 

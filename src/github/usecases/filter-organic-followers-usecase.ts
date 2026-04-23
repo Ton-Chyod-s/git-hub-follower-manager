@@ -1,4 +1,4 @@
-import { getUserData } from '../../../requests/UserRequest';
+import { getUserData } from '../requests/user-request';
 
 interface FilterResult {
   organic: string[];

@@ -1,8 +1,8 @@
-import { GetFollowersData } from '../../../requests/FollowersRequest';
-import { GetFollowingData } from '../../../requests/FollowingRequest';
-import { newFollower } from '../../../requests/FollowRequest';
-import { getUserData } from '../../../requests/UserRequest';
-import { filterOrganicFollowers } from '../filterOrganicFollowers/FilterOrganicFollowersUseCase';
+import { GetFollowersData } from '../requests/followers-request';
+import { GetFollowingData } from '../requests/following-request';
+import { newFollower } from '../requests/follow-request';
+import { getUserData } from '../requests/user-request';
+import { filterOrganicFollowers } from './filter-organic-followers-usecase';
 
 const PER_PAGE = 100;
 const BATCH_SIZE = 20;

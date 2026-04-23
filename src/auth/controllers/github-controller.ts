@@ -3,9 +3,9 @@ import { Request, Response, NextFunction, RequestHandler } from 'express';
 import { GitHubLoginUseCase } from '../usecases/github-login-usecase';
 import { UserRepository } from '../repositories/user-repository';
 import { RefreshTokenRepository } from '../repositories/refresh-token-repository';
-import { createResponse } from '../../utils/createResponse';
-import { httpStatusCodes } from '../../utils/httpConstants';
-import { AppError } from '../../utils/appError';
+import { createResponse } from '../../utils/create-response';
+import { httpStatusCodes } from '../../utils/http-constants';
+import { AppError } from '../../utils/app-error';
 
 export const GITHUB_STATE_COOKIE = 'github_oauth_state';
 

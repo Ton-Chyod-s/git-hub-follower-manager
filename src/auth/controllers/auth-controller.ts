@@ -6,8 +6,8 @@ import { RefreshTokenUseCase } from '../usecases/refresh-token-usecase';
 import { LogoutUseCase } from '../usecases/logout-usecase';
 import { UserRepository } from '../repositories/user-repository';
 import { RefreshTokenRepository } from '../repositories/refresh-token-repository';
-import { createResponse } from '../../utils/createResponse';
-import { httpStatusCodes } from '../../utils/httpConstants';
+import { createResponse } from '../../utils/create-response';
+import { httpStatusCodes } from '../../utils/http-constants';
 
 const userRepo = new UserRepository();
 const refreshTokenRepo = new RefreshTokenRepository();

@@ -10,7 +10,7 @@ const options: swaggerJsdoc.Options = {
         'API para gerenciamento de seguidores do GitHub. Permite verificar seguidores, seguir usuários automaticamente e monitorar alterações na lista de seguidores.',
     },
   },
-  apis: ['./src/controllers/routes/*.ts', './src/auth/routes/*.ts'],
+  apis: ['./src/github/routes/*.ts', './src/auth/routes/*.ts'],
 };
 
 export const swaggerSpec = swaggerJsdoc(options);

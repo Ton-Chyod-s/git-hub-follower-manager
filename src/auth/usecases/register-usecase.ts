@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { UserRepository } from '../repositories/user-repository';
 import { hashPassword } from '../../utils/password';
-import { AppError } from '../../utils/appError';
+import { AppError } from '../../utils/app-error';
 
 export const registerSchema = z.object({
   name: z

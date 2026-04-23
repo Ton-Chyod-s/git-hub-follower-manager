@@ -1,4 +1,4 @@
-import { unfollowUser } from '../../../requests/UnfollowRequest';
+import { unfollowUser } from '../requests/unfollow-request';
 
 export async function unfollowUsers(
   usernames: string[],

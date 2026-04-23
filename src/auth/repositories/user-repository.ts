@@ -1,5 +1,5 @@
 import { sql } from '../../db/client';
-import { AppError } from '../../utils/appError';
+import { AppError } from '../../utils/app-error';
 
 export type UserRole = 'USER' | 'ADMIN';
 

@@ -1,4 +1,4 @@
-import { fetchUserFollowData } from '../fetchUserFollowData/fetchUserFollowDataUseCase';
+import { fetchUserFollowData } from './fetch-user-follow-data-usecase';
 
 export async function checkUnfollowAndFollow(userName: string): Promise<string[] | null> {
   const userToFollow: string[] = [];

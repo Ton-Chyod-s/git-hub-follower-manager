@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction, RequestHandler } from 'express';
 import { verifyToken } from '../../utils/jwt';
 import { UserRepository } from '../repositories/user-repository';
-import { createResponse } from '../../utils/createResponse';
-import { httpStatusCodes } from '../../utils/httpConstants';
+import { createResponse } from '../../utils/create-response';
+import { httpStatusCodes } from '../../utils/http-constants';
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace

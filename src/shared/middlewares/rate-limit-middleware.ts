@@ -1,6 +1,6 @@
 import rateLimit from 'express-rate-limit';
-import { createResponse } from '../../../utils/createResponse';
-import { httpStatusCodes } from '../../../utils/httpConstants';
+import { createResponse } from '../../utils/create-response';
+import { httpStatusCodes } from '../../utils/http-constants';
 
 export const globalApiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,

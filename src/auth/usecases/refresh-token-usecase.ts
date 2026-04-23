@@ -3,7 +3,7 @@ import { UserRepository } from '../repositories/user-repository';
 import { RefreshTokenRepository } from '../repositories/refresh-token-repository';
 import { signToken } from '../../utils/jwt';
 import { sha256Hex } from '../../utils/hash';
-import { AppError } from '../../utils/appError';
+import { AppError } from '../../utils/app-error';
 
 const REFRESH_TOKEN_TTL_MS = parseInt(process.env.REFRESH_TOKEN_TTL_MS ?? '604800000', 10);
 

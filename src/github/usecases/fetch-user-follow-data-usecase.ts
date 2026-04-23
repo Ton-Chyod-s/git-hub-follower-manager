@@ -1,6 +1,6 @@
-import { GetFollowersData } from '../../../requests/FollowersRequest';
-import { GetFollowingData } from '../../../requests/FollowingRequest';
-import { getUserData } from '../../../requests/UserRequest';
+import { GetFollowersData } from '../requests/followers-request';
+import { GetFollowingData } from '../requests/following-request';
+import { getUserData } from '../requests/user-request';
 
 const PER_PAGE = 100;
 
