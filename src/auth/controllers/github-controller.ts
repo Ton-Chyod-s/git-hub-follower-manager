@@ -104,7 +104,9 @@ export async function githubCallback(req: Request, res: Response, next: NextFunc
 
     const frontendUrl = process.env.FRONTEND_URL;
     if (frontendUrl) {
-      res.redirect(frontendUrl);
+      const redirectUrl = new URL(frontendUrl);
+      redirectUrl.searchParams.set('refresh_token', result.refreshToken);
+      res.redirect(redirectUrl.toString());
       return;
     }
 
