@@ -118,6 +118,14 @@ export async function githubCallback(req: Request, res: Response, next: NextFunc
       }),
     );
   } catch (err) {
+    const frontendUrl = process.env.FRONTEND_URL;
+    if (frontendUrl) {
+      const redirectUrl = new URL(frontendUrl);
+      const message = err instanceof Error ? err.message : 'GitHub authentication failed';
+      redirectUrl.searchParams.set('error', message);
+      res.redirect(redirectUrl.toString());
+      return;
+    }
     next(err);
   }
 }
