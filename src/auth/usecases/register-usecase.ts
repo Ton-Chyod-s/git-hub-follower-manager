@@ -8,6 +8,7 @@ export const registerSchema = z.object({
     .string()
     .min(2, 'Name must be at least 2 characters')
     .max(100, 'Name must be at most 100 characters')
+    .regex(/^[^\x00<>'"\\]+$/, 'Name contains invalid characters')
     .transform((v) => v.trim()),
   email: z
     .string()

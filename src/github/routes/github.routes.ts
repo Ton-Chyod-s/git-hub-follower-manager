@@ -5,6 +5,7 @@ import { newFollower } from '../requests/follow-request';
 import { checkUnfollowAndFollow } from '../usecases/check-unfollow-and-follow-usecase';
 import { unfollowUsers } from '../usecases/unfollow-users-usecase';
 import { filterOrganicFollowers } from '../usecases/filter-organic-followers-usecase';
+import { authMiddleware } from '../../auth/middleware/auth-middleware';
 import { AppError } from '../../utils/app-error';
 import { createResponse } from '../../utils/create-response';
 import { httpStatusCodes } from '../../utils/http-constants';
@@ -56,7 +57,7 @@ routers.get('/', (_req: Request, res: Response) => {
  *       500:
  *         description: Erro interno
  */
-routers.get('/check-follower', async (_req: Request, res: Response, next: NextFunction) => {
+routers.get('/check-follower', authMiddleware, async (_req: Request, res: Response, next: NextFunction) => {
   const name = getAuthenticatedUser(res);
   if (!name) return;
 
@@ -94,7 +95,7 @@ routers.get('/check-follower', async (_req: Request, res: Response, next: NextFu
  *       400:
  *         description: targetUser inválido
  */
-routers.post('/follow-users', async (req: Request, res: Response, next: NextFunction) => {
+routers.post('/follow-users', authMiddleware, async (req: Request, res: Response, next: NextFunction) => {
   const { targetUser } = req.body;
 
   if (!targetUser || typeof targetUser !== 'string' || !isValidUsername(targetUser)) {
@@ -137,7 +138,7 @@ routers.post('/follow-users', async (req: Request, res: Response, next: NextFunc
  *       500:
  *         description: Erro interno
  */
-routers.get('/check-unfollower', async (_req: Request, res: Response, next: NextFunction) => {
+routers.get('/check-unfollower', authMiddleware, async (_req: Request, res: Response, next: NextFunction) => {
   const name = getAuthenticatedUser(res);
   if (!name) return;
 
@@ -178,6 +179,7 @@ routers.get('/check-unfollower', async (_req: Request, res: Response, next: Next
  */
 routers.post(
   '/new-follower',
+  authMiddleware,
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     const { usernames } = req.body;
 
@@ -252,7 +254,7 @@ routers.post(
  *       400:
  *         description: Lista inválida
  */
-routers.delete('/unfollow-users', async (req: Request, res: Response, next: NextFunction) => {
+routers.delete('/unfollow-users', authMiddleware, async (req: Request, res: Response, next: NextFunction) => {
   const { usernames } = req.body;
 
   if (!Array.isArray(usernames) || usernames.length === 0) {
@@ -299,7 +301,7 @@ routers.delete('/unfollow-users', async (req: Request, res: Response, next: Next
  *       400:
  *         description: Lista inválida
  */
-routers.post('/filter-organic', async (req: Request, res: Response, next: NextFunction) => {
+routers.post('/filter-organic', authMiddleware, async (req: Request, res: Response, next: NextFunction) => {
   const { usernames } = req.body;
 
   if (!Array.isArray(usernames) || usernames.length === 0) {

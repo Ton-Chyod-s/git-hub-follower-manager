@@ -3,3 +3,4 @@
 .vccode
 node_modules
 .vercel
+dist
