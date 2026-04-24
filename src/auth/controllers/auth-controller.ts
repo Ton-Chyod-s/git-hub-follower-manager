@@ -165,6 +165,7 @@ export async function me(req: Request, res: Response, next: NextFunction): Promi
         name: user.name,
         email: user.email,
         role: user.role,
+        githubLogin: user.github_login ?? undefined,
       }),
     );
   } catch (err) {
