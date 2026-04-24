@@ -54,7 +54,7 @@ export const githubAuth: RequestHandler = (req, res) => {
   res.cookie(GITHUB_STATE_COOKIE, state, {
     httpOnly: true,
     secure: IS_PROD,
-    sameSite: 'lax',
+    sameSite: 'none',
     maxAge: 5 * 60 * 1000,
     path: '/',
   });
@@ -109,7 +109,11 @@ export async function githubCallback(req: Request, res: Response, next: NextFunc
     }
 
     res.status(httpStatusCodes.OK).json(
-      createResponse(httpStatusCodes.OK, 'GitHub login successful', { user: result.user }),
+      createResponse(httpStatusCodes.OK, 'GitHub login successful', {
+        user: result.user,
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken,
+      }),
     );
   } catch (err) {
     next(err);
