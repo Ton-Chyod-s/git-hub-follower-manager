@@ -60,6 +60,21 @@ export class RefreshTokenRepository {
     };
   }
 
+  async updateGithubToken(userId: string, encryptedToken: string): Promise<void> {
+    await prisma.refreshToken.updateMany({
+      where: { user_id: userId, used_at: null },
+      data: { github_access_token: encryptedToken },
+    });
+  }
+
+  async hasGithubToken(userId: string): Promise<boolean> {
+    const token = await prisma.refreshToken.findFirst({
+      where: { user_id: userId, used_at: null, github_access_token: { not: null } },
+      select: { id: true },
+    });
+    return token !== null;
+  }
+
   async deleteByUserId(userId: string): Promise<void> {
     await prisma.refreshToken.deleteMany({ where: { user_id: userId } });
   }

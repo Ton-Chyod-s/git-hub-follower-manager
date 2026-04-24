@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import rateLimit from 'express-rate-limit';
-import { register, login, refreshToken, logout, me } from '../controllers/auth-controller';
+import { register, login, refreshToken, logout, me, updateMe } from '../controllers/auth-controller';
 import { githubAuth, githubCallback } from '../controllers/github-controller';
 import { authMiddleware } from '../middleware/auth-middleware';
 import { createResponse } from '../../utils/create-response';
@@ -136,6 +136,7 @@ router.post(
  *         description: Unauthorized
  */
 router.get('/auth/me', authMiddleware, asyncRoute(me));
+router.patch('/auth/me', authMiddleware, asyncRoute(updateMe));
 
 /**
  * @swagger

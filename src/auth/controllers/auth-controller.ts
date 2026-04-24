@@ -8,6 +8,7 @@ import { UserRepository } from '../repositories/user-repository';
 import { RefreshTokenRepository } from '../repositories/refresh-token-repository';
 import { createResponse } from '../../utils/create-response';
 import { httpStatusCodes } from '../../utils/http-constants';
+import { encryptToken } from '../../utils/crypto';
 
 const userRepo = new UserRepository();
 const refreshTokenRepo = new RefreshTokenRepository();
@@ -159,6 +160,8 @@ export async function me(req: Request, res: Response, next: NextFunction): Promi
       return;
     }
 
+    const githubTokenSet = await refreshTokenRepo.hasGithubToken(user.id);
+
     res.status(httpStatusCodes.OK).json(
       createResponse(httpStatusCodes.OK, 'OK', {
         id: user.id,
@@ -166,8 +169,47 @@ export async function me(req: Request, res: Response, next: NextFunction): Promi
         email: user.email,
         role: user.role,
         githubLogin: user.github_login ?? undefined,
+        githubTokenSet,
       }),
     );
+  } catch (err) {
+    next(err);
+  }
+}
+
+const updateMeSchema = z.object({
+  githubLogin: z.string().min(1).max(39).optional(),
+  githubToken: z.string().min(1).optional(),
+});
+
+export async function updateMe(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    if (!req.user) {
+      res.status(httpStatusCodes.UNAUTHORIZED).json(
+        createResponse(httpStatusCodes.UNAUTHORIZED, 'Unauthorized', undefined, 'UNAUTHORIZED'),
+      );
+      return;
+    }
+
+    const parsed = updateMeSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(httpStatusCodes.BAD_REQUEST).json(
+        createResponse(httpStatusCodes.BAD_REQUEST, 'Invalid request body', undefined, 'VALIDATION_ERROR'),
+      );
+      return;
+    }
+
+    const { githubLogin, githubToken } = parsed.data;
+
+    if (githubLogin) {
+      await userRepo.updateGithubLogin(req.user.id, githubLogin);
+    }
+
+    if (githubToken) {
+      await refreshTokenRepo.updateGithubToken(req.user.id, encryptToken(githubToken));
+    }
+
+    res.status(httpStatusCodes.OK).json(createResponse(httpStatusCodes.OK, 'Profile updated'));
   } catch (err) {
     next(err);
   }

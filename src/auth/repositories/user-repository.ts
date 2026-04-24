@@ -84,6 +84,13 @@ export class UserRepository {
     return { user, created: true };
   }
 
+  async updateGithubLogin(userId: string, githubLogin: string): Promise<void> {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { github_login: githubLogin.trim(), updated_at: new Date() },
+    });
+  }
+
   async incrementTokenVersion(userId: string): Promise<void> {
     await prisma.user.update({
       where: { id: userId },
