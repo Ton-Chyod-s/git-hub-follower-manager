@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/node';
 import type { Request, Response, NextFunction } from 'express';
 import { AppError } from '../../utils/app-error';
 import { createResponse } from '../../utils/create-response';
@@ -37,6 +38,10 @@ export function errorMiddleware(err: unknown, req: Request, res: Response, _next
   const isServerError = status >= 500;
   const message =
     isServerError && isProd ? 'Internal server error' : legacy.message || 'Internal server error';
+
+  if (isServerError) {
+    Sentry.captureException(err);
+  }
 
   if (process.env.NODE_ENV !== 'test') {
     console.error(`[${status}] ${req.method} ${req.originalUrl} - ${message}`);
