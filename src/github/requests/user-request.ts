@@ -24,7 +24,9 @@ async function getUserData(username: string): Promise<GitHubUser | null> {
       Following: data.following ?? 0,
       Bio: data.bio ?? null,
       PublicRepos: data.public_repos ?? 0,
+      PublicGists: data.public_gists ?? 0,
       CreatedAt: data.created_at ?? '',
+      UpdatedAt: data.updated_at ?? '',
       Name: data.name ?? null,
     };
   } catch (error) {
