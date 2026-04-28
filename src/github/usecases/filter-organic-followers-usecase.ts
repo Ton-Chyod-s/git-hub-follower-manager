@@ -20,6 +20,10 @@ const BOT_BIO_KEYWORDS = [
   'i follow back',
   'follow me back',
   'followback',
+  'spam follower',
+  'spam account',
+  'follow everyone',
+  'follow all',
 ];
 
 function isSuspicious(user: GitHubUser | null): string[] {
