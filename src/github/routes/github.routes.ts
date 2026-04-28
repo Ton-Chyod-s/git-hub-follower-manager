@@ -1,5 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { CheckFollowerWithFollowing } from '../usecases/check-follower-with-following-usecase';
+import { getFollowing } from '../usecases/get-following-usecase';
 import { FollowUsersFollowers } from '../usecases/follow-users-followers-usecase';
 import { newFollower } from '../requests/follow-request';
 import { checkUnfollowAndFollow } from '../usecases/check-unfollow-and-follow-usecase';
@@ -51,6 +52,7 @@ routers.get('/', (_req: Request, res: Response) => {
   res.status(status).json(
     createResponse(status, 'Bem-vindo à API de Gerenciamento de Seguidores!', {
       endpoints: {
+        '/following': 'Lista todos os usuários que você está seguindo.',
         '/check-follower': 'Verifica quem você segue mas não te segue de volta.',
         '/follow-users': 'Segue automaticamente os seguidores de um usuário.',
         '/check-unfollower': 'Verifica quem te segue mas você ainda não segue de volta.',
@@ -60,6 +62,32 @@ routers.get('/', (_req: Request, res: Response) => {
       },
     }),
   );
+});
+
+/**
+ * @swagger
+ * /following:
+ *   get:
+ *     summary: Lista todos os usuários que você está seguindo
+ *     tags:
+ *       - Seguidores
+ *     responses:
+ *       200:
+ *         description: Lista retornada com sucesso
+ *       500:
+ *         description: Erro interno
+ */
+routers.get('/following', authMiddleware, async (req: Request, res: Response, next: NextFunction) => {
+  const name = await getAuthenticatedGithubLogin(req, res);
+  if (!name) return;
+
+  try {
+    const result = await getFollowing(name);
+    const status = httpStatusCodes.OK;
+    res.status(status).json(createResponse(status, 'Success', result));
+  } catch (error) {
+    next(error);
+  }
 });
 
 /**
