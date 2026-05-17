@@ -66,6 +66,24 @@ async function getFollowersIDoNotFollow(
   return toFollow;
 }
 
+const PAGE_BATCH_SIZE = 5;
+
+async function fetchPagesBatched<T>(
+  fetchFn: (page: number) => Promise<T[] | null>,
+  pageCount: number,
+): Promise<T[]> {
+  const result: T[] = [];
+  for (let i = 0; i < pageCount; i += PAGE_BATCH_SIZE) {
+    const batch = Array.from(
+      { length: Math.min(PAGE_BATCH_SIZE, pageCount - i) },
+      (_, j) => fetchFn(i + j + 1),
+    );
+    const pages = await Promise.all(batch);
+    pages.forEach((page) => page?.forEach((item) => result.push(item)));
+  }
+  return result;
+}
+
 async function getUserFollowers(username: string): Promise<Set<string> | null> {
   const userData = await getUserData(username);
   if (!userData) return null;
@@ -73,13 +91,8 @@ async function getUserFollowers(username: string): Promise<Set<string> | null> {
   const pageCount = Math.ceil((userData.Followers ?? 0) / PER_PAGE);
   if (!Number.isFinite(pageCount) || pageCount <= 0) return new Set();
 
-  const pages = await Promise.all(
-    Array.from({ length: pageCount }, (_, i) => GetFollowersData(username, i + 1)),
-  );
-
-  const result = new Set<string>();
-  pages.forEach((page) => page?.forEach((f) => result.add(f.Name)));
-  return result;
+  const items = await fetchPagesBatched((page) => GetFollowersData(username, page), pageCount);
+  return new Set(items.map((f) => f.Name));
 }
 
 async function getUserFollowing(username: string): Promise<Set<string> | null> {
@@ -89,13 +102,8 @@ async function getUserFollowing(username: string): Promise<Set<string> | null> {
   const pageCount = Math.ceil((userData.Following ?? 0) / PER_PAGE);
   if (!Number.isFinite(pageCount) || pageCount <= 0) return new Set();
 
-  const pages = await Promise.all(
-    Array.from({ length: pageCount }, (_, i) => GetFollowingData(username, i + 1)),
-  );
-
-  const result = new Set<string>();
-  pages.forEach((page) => page?.forEach((f) => result.add(f.Name)));
-  return result;
+  const items = await fetchPagesBatched((page) => GetFollowingData(username, page), pageCount);
+  return new Set(items.map((f) => f.Name));
 }
 
 function chunkArray<T>(arr: T[], size: number): T[][] {

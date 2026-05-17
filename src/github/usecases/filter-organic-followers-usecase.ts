@@ -102,24 +102,35 @@ function isSuspicious(user: GitHubUser | null): string[] {
   return score >= SCORE_THRESHOLD ? reasons : [];
 }
 
+const FILTER_BATCH_SIZE = 5;
+const FILTER_BATCH_DELAY_MS = 1500;
+
 export async function filterOrganicFollowers(usernames: string[]): Promise<FilterResult> {
   const organic: string[] = [];
   const suspicious: string[] = [];
   const reasons: Record<string, string[]> = {};
 
-  await Promise.all(
-    usernames.map(async (username) => {
-      const userData = await getUserData(username);
-      const suspiciousReasons = isSuspicious(userData);
+  for (let i = 0; i < usernames.length; i += FILTER_BATCH_SIZE) {
+    const batch = usernames.slice(i, i + FILTER_BATCH_SIZE);
 
-      if (suspiciousReasons.length > 0) {
-        suspicious.push(username);
-        reasons[username] = suspiciousReasons;
-      } else {
-        organic.push(username);
-      }
-    }),
-  );
+    await Promise.all(
+      batch.map(async (username) => {
+        const userData = await getUserData(username);
+        const suspiciousReasons = isSuspicious(userData);
+
+        if (suspiciousReasons.length > 0) {
+          suspicious.push(username);
+          reasons[username] = suspiciousReasons;
+        } else {
+          organic.push(username);
+        }
+      }),
+    );
+
+    if (i + FILTER_BATCH_SIZE < usernames.length) {
+      await new Promise((resolve) => setTimeout(resolve, FILTER_BATCH_DELAY_MS));
+    }
+  }
 
   return { organic, suspicious, reasons };
 }
